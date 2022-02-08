@@ -1,7 +1,4 @@
 from django.db import models
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
 
 
 class Category(models.Model):
@@ -28,11 +25,7 @@ class Product(models.Model):
 
 
 class Cart(models.Model):
-    user = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        blank=True, null=True
-    )
+    user_id = models.IntegerField(blank=True, null=True)
     item = models.ForeignKey(
         Product,
         on_delete=models.SET_NULL,
@@ -43,4 +36,4 @@ class Cart(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return "{} - - {} - {}".format(self.user, self.item, self.quantity)
+        return "{} - {} - {}".format(self.user_id, self.item, self.quantity)
