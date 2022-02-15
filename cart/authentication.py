@@ -1,12 +1,11 @@
 import jwt
-
-from django.conf import settings
+import requests
+import json
 
 from rest_framework import authentication, exceptions
 from rest_framework.exceptions import AuthenticationFailed
 
-from django.contrib.auth import get_user_model
-User = get_user_model()
+from .models import TempUser
 
 
 class JWTAuthentication(authentication.BaseAuthentication):
@@ -14,19 +13,51 @@ class JWTAuthentication(authentication.BaseAuthentication):
     def authenticate(self, request):
         request.user = None
 
-        token = request.COOKIES.get('jwt')
+        token = request.COOKIES.get('access_token')
 
         if not token:
             raise AuthenticationFailed('Unauthenticated!')
 
         try:
-            payload = jwt.decode(token, 'secret', algorithms=['HS256'])
+            data = json.dumps({
+                "phone_number": "+918186866445",
+                "password": "root"
+            })
+            headers = {
+                'Content-Type': 'application/json',
+            }
+            response = requests.request(
+                "POST",
+                "http://localhost:8000/api/token/",
+                headers=headers,
+                data=data
+            )
+
+            token = response.json()['access']
+
         except jwt.ExpiredSignatureError:
             raise AuthenticationFailed('Unauthenticated!')
 
         try:
-            user = User.objects.get(pk=payload['id'])
-        except User.DoesNotExist:
+            data = {}
+            headers = {
+                'Authorization': 'Bearer {}'.format(token),
+            }
+
+            response = requests.request(
+                "GET",
+                "http://localhost:8000/api/user/",
+                headers=headers,
+                data=data
+            )
+
+            print(response.json())
+        except Exception as e:
+            raise e
+
+        try:
+            user = TempUser(**response.json())
+        except TempUser.DoesNotExist:
             msg = 'No user matching this token was found.'
             raise exceptions.AuthenticationFailed(msg)
 
@@ -35,6 +66,3 @@ class JWTAuthentication(authentication.BaseAuthentication):
             raise exceptions.AuthenticationFailed(msg)
 
         return user, token
-
-
-
