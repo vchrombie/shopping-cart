@@ -1,4 +1,7 @@
 from django.db import models
+from django.contrib.auth.models import AbstractUser
+
+from phonenumber_field.modelfields import PhoneNumberField
 
 
 class Category(models.Model):
@@ -37,3 +40,14 @@ class Cart(models.Model):
 
     def __str__(self):
         return "{} - {} - {}".format(self.user_id, self.item, self.quantity)
+
+
+class TempUser(AbstractUser):
+    phone_number = PhoneNumberField(
+        verbose_name='Phone Number',
+        unique=True,
+    )
+
+    class Meta:
+        managed = False
+        db_table = "temp_user"

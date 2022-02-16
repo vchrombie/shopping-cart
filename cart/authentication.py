@@ -1,20 +1,21 @@
 import jwt
 
-from django.conf import settings
-
 from rest_framework import authentication, exceptions
 from rest_framework.exceptions import AuthenticationFailed
 
 from django.contrib.auth import get_user_model
+
+from cart.models import TempUser
+
 User = get_user_model()
 
 
-class JWTAuthentication(authentication.BaseAuthentication):
+class CustomAuthentication(authentication.BaseAuthentication):
 
     def authenticate(self, request):
         request.user = None
 
-        token = request.COOKIES.get('jwt')
+        token = request.headers.get('Authorization').split()[-1]
 
         if not token:
             raise AuthenticationFailed('Unauthenticated!')
@@ -24,17 +25,14 @@ class JWTAuthentication(authentication.BaseAuthentication):
         except jwt.ExpiredSignatureError:
             raise AuthenticationFailed('Unauthenticated!')
 
-        try:
-            user = User.objects.get(pk=payload['id'])
-        except User.DoesNotExist:
-            msg = 'No user matching this token was found.'
-            raise exceptions.AuthenticationFailed(msg)
+        response = {
+            "id": payload['id'],
+        }
 
-        if not user.is_active:
-            msg = 'This user has been deactivated.'
-            raise exceptions.AuthenticationFailed(msg)
+        try:
+            user = TempUser(**response)
+        except TempUser.DoesNotExist:
+            msg = 'No user matching this token was found.'
+            raise AuthenticationFailed(msg)
 
         return user, token
-
-
-
